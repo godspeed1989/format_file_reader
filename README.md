@@ -1,4 +1,7 @@
 format_file_reader
 ==================
 
-reader of data file with the format specified by XML file
+file reader with the file format specified by XML file.
+
+
+

@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<AREADESC>
+
+<FILEHEAD>
+	<PARA name="h1" type="4" length="2"/>
+	<PARA name="h2" type="4" length="2"/>
+</FILEHEAD>
+
+<CONTENT>
+	<PARA name="c1" type="4" length="1"/>
+	<PARA name="c2" type="4" length="2">
+		<PARACHOICE value="0">
+			<PARA name="c21" type="4" length="1"/>
+			<PARA name="c22" type="4" length="2"/>
+		</PARACHOICE>
+		<PARACHOICE value="16">
+			<PARA name="c23" type="4" length="4"/>
+			<PARA name="c24" type="4" length="2"/>
+		</PARACHOICE>
+		<PARACHOICE value="-1232~233">
+			<PARA name="c25" type="4" length="1"/>
+		</PARACHOICE>
+	</PARA>
+	<PARA name="c3" type="11" length="c1"/>
+</CONTENT>
+
+</AREADESC>
+

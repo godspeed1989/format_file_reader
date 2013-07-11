@@ -194,17 +194,17 @@ int xmlreader::processFile(const char* file)
 }
 
 // print out the XML file content
-void xmlreader::printOut()
+void xmlreader::printOut(FILE *fout)
 {
 	vector<PARA_entity*>::iterator it;
-	printf("======== Output read in to check ========\n");
-	printf("-----<File head info(%zu)>-----\n", format_file.file_head.size());
+	fprintf(fout, "======== Output read in to check ========\n");
+	fprintf(fout, "-----<File head info(%zu)>-----\n", format_file.file_head.size());
 	for(it = format_file.file_head.begin(); it != format_file.file_head.end(); ++it)
-		show_PARA_entity(*it);
-	printf("-----<File content info(%zu)>-----\n", format_file.file_content.size());
+		show_PARA_entity(*it, fout);
+	fprintf(fout, "-----<File content info(%zu)>-----\n", format_file.file_content.size());
 	for(it = format_file.file_content.begin(); it != format_file.file_content.end(); ++it)
-		show_PARA_entity(*it);
-	printf("========= Finish output read in =========\n");
+		show_PARA_entity(*it, fout);
+	fprintf(fout, "========= Finish output read in =========\n");
 }
 
 // clean up function

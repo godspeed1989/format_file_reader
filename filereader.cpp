@@ -55,7 +55,6 @@ int filereader::parse_data_file()
 void filereader::summary()
 {
 	printf("~~~summary~~~\n");
-	xfreader.printOut();
 	printf("%s %s\n", fmt_file_name, dat_file_name);
 	printf("head %zu\n", data_file.head.size());
 	printf("content %zu\n", data_file.content.size());
@@ -71,7 +70,7 @@ static void dump_dats(bitfile &ofile, const vector<data> dats)
 }
 
 // dump all of log data to file
-void filereader::dump_all(const char *file)
+void filereader::dump_all_dat(const char *file)
 {
 	bitfile ofile;
 	ofile.open(file, WRITE);
@@ -83,5 +82,20 @@ void filereader::dump_all(const char *file)
 	ofile.writeout();
 	printf("dumped all read in to data file [%s]\n", file);
 	ofile.close();
+}
+
+// dump all format info read from XML file
+void filereader::dump_fmt_info(const char *file)
+{
+	FILE *fout;
+	fout = fopen(file, "w");
+	if(fout == NULL)
+	{
+		printf("error in open %s to dump fmt info\n", file);
+		return;
+	}
+	xfreader.printOut(fout);
+	printf("dumped all fmt info to file [%s]\n", file);
+	fclose(fout);
 }
 

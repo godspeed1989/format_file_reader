@@ -42,7 +42,7 @@ int filereader::parse_data_file()
 	if(!dfreader.eof())
 	{
 		data_file.left.ref = NULL;
-		data_file.left.lenb = dfreader.capb - dfreader.sizeb();
+		data_file.left.lenb = dfreader.capb - dfreader.ftellb();
 		data_file.left.p = malloc((data_file.left.lenb >> 3) + 1);
 		dfreader.readb(data_file.left.p, data_file.left.lenb);
 		printf("read in left %d bits\n", data_file.left.lenb);
@@ -79,7 +79,7 @@ void filereader::dump_all_dat(const char *file)
 	dump_dats(ofile, data_file.content);
 	ofile.writeb(data_file.left.p, data_file.left.lenb);
 
-	ofile.writeout();
+	ofile.write_out();
 	printf("dumped all read in to data file [%s]\n", file);
 	ofile.close();
 }

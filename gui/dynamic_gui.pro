@@ -3,7 +3,7 @@ TEMPLATE = app
 DEPENDPATH += .
 INCLUDEPATH += .
 
-HEADERS += mainwindow.h
+HEADERS += mainwindow.hpp
 
 SOURCES += main.cpp \
            mainwindow.cpp

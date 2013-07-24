@@ -2,7 +2,7 @@
 #define __FILEHEADER_HPP__
 
 #include "xmlreader.hpp"
-#include "../bit_file/bitfile.hpp"
+#include "./bit_file/bitfile.hpp"
 #include <vector>
 using namespace std;
 

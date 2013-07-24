@@ -21,7 +21,7 @@ int main(int argc, char* argv[])
 	}
 	freader.summary();
 	freader.dump_all_dat("dump.hex");
-	freader.dump_fmt_info("dump.txt"); 
+	freader.dump_fmt_info("dump.txt");
 	return 0;
 }
 

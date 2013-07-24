@@ -2,7 +2,7 @@
 #define __FILEHEADER_HPP__
 
 #include "xmlreader.hpp"
-#include "./bit_file/bitfile.hpp"
+#include "../bit_file/bitfile.hpp"
 #include <vector>
 using namespace std;
 
@@ -18,12 +18,17 @@ typedef struct data
 	data() : ref(NULL), lenb(-1), p(NULL) {}
 }data;
 
+typedef struct log_data
+{
+	vector<data> head;
+	vector<data> content;
+	data left;             // left data bits after read in log content
+}log_data;
 // content of a data file
 typedef struct file_data
 {
-	vector<data> head;     // file header
-	vector<data> content;  // file content
-	data left;             // left data after read in file content
+	vector<data> head;     // file's header
+	vector<log_data> logs; // content log's head and it's content
 }file_data;
 
 typedef class filereader
@@ -39,12 +44,16 @@ public:
 	int parse_data_file();
 	void summary();
 	void dump_all_dat(const char *file);
-	void dump_fmt_info(const char *file); 
+	void dump_fmt_info(const char *file);
 	~filereader()
 	{
 		xfreader.cleanup();
 	}
 }filereader;
+
+#define LOG_MAGIC   (const xmlChar*)"Verifyflag"
+#define LOG_TYPE    (const xmlChar*)"Logtype"
+#define LOG_LEN     (const xmlChar*)"Loglength"
 
 #endif
 

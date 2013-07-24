@@ -65,12 +65,11 @@ static PARA_entity* get_ref_by_name(vector<PARA_entity*>* es, const xmlChar* nam
 		printf("error: can't find entity ref by name %s\n", name);
 		throw;
 	}
-	printf("get ref by name() %s = %s\n", (*rit)->name, name);
 	return *rit;
 }
 
 // output functions
-static void show_range(const range& rng, FILE *fout)
+static void show_range(const range& rng, FILE* fout)
 {
 	if(rng.type == T_ANY)
 		fprintf(fout, "ANY");
@@ -83,14 +82,20 @@ static void show_range(const range& rng, FILE *fout)
 static void show_length(const PARA_entity *entity, FILE *fout)
 {
 	fprintf(fout, "len=");
-	if(entity->attr.len.lb != -1)
-		fprintf(fout, "%db", entity->attr.len.lb);
-	else if(entity->attr.len.le)
-		fprintf(fout, "'$%s'", entity->attr.len.le->name);
-	else
+	switch(entity->attr.type)
 	{
-		fprintf(fout, "unknown");
-		throw;
+		T_BIT_CASE: T_BYTE_CASE:
+			fprintf(fout, "%db", entity->attr.len.lb);
+			break;
+		T_BIT_REF_CASE: T_BYTE_REF_CASE:
+			fprintf(fout, "'$%s'", entity->attr.len.le->name);
+			break;
+		T_NULL_CASE:
+			fprintf(fout, "''");
+			break;
+		default:
+			fprintf(fout, "??unknown??");
+			throw;
 	}
 }
 
@@ -111,6 +116,17 @@ static void show_PARA_entity(const PARA_entity *entity, FILE *fout)
 		show_range(entity->attr.rng, fout);
 	}
 	fprintf(fout, "\n");
+}
+
+static void show_one_log_fmt(const log_format *log, FILE* fout)
+{
+	fprintf(fout, "<LOG type=");
+	show_range(log->rng, fout);
+	fprintf(fout, ">(%zu)\n", log->entities.size());
+	for(size_t i = 0; i < log->entities.size(); ++i)
+	{
+		show_PARA_entity(log->entities[i], fout);
+	}
 }
 
 #endif

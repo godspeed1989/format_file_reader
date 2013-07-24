@@ -5,7 +5,9 @@
 
 #define AREADESC    (const xmlChar*)"AREADESC"
 #define FILEHEAD    (const xmlChar*)"FILEHEAD"
-#define CONTENT     (const xmlChar*)"CONTENT"
+#define LOGHEAD     (const xmlChar*)"LOGHEAD"
+#define LOGTYPE     (const xmlChar*)"LOGTYPE"
+#define LOG         (const xmlChar*)"LOG"
 #define PARA        (const xmlChar*)"PARA"
 #define PARACHOICE  (const xmlChar*)"PARACHOICE"
 
@@ -49,48 +51,80 @@ void xmlreader::processNode(xmlTextReaderPtr reader)
 		processing = &format_file.file_head;
 		return;
 	}
-	else if(xmlStrncasecmp(node_name, CONTENT, MLEN) == 0)// 1 <CONTENT>
+	else if(xmlStrncasecmp(node_name, LOGHEAD, MLEN) == 0)// 1 <LOGHEAD>
 	{
-		printf("***Processing <%s> ...\n", CONTENT);
+		printf("***Processing <%s> ...\n", LOGHEAD);
 		assert(entity.depth == 1);
-		processing = &format_file.file_content;
+		processing = &format_file.log_head;
+		return;
+	}
+	else if(xmlStrncasecmp(node_name, LOGTYPE, MLEN) == 0)// 1 <LOGTYPE>
+	{
+		printf("***Processing <%s> ...\n", LOGTYPE);
+		assert(entity.depth == 1);
+		return;
+	}
+	else if(xmlStrncasecmp(node_name, LOG, MLEN) == 0)// 2 <LOG type="" ...
+	{
+		printf("****Processing LOG type=");
+		assert(entity.depth == 2);
+		assert(xmlTextReaderAttributeCount(reader) > 0);
+		log_format *one_log_fmt = new log_format;
+		// get "type=" attr to setup range
+		s = xmlTextReaderGetAttributeNo(reader, 0);
+		resolve_range(one_log_fmt->rng, s);
+		show_range(one_log_fmt->rng, stdout);
+		// output describe infomation if exist
+		s = xmlTextReaderGetAttributeNo(reader, 1);
+		if(s)
+			printf(" '%s'", s);
+		printf("\n");
+		format_file.log_fmt.push_back(one_log_fmt);
+		processing = &one_log_fmt->entities;
 		return;
 	}
 	else if(xmlStrncasecmp(node_name, PARA, MLEN) == 0)// <PARA name="" ...
 	{
 		entity.type = T_PARA;
-		assert(entity.depth > 1);
-		assert(xmlTextReaderAttributeCount(reader) > 0);
+		assert(xmlTextReaderAttributeCount(reader) >= 3);
 		// parse attributes one by one
 		int count = xmlTextReaderAttributeCount(reader);
-		for(int i = 0; i < count; ++i)
+		for(int i = 0; i < count; ++i) //TODO: get detailed format information
 		{
 			s = xmlTextReaderGetAttributeNo(reader, i);
 			if(i == 0)
 			{
-				entity.name = xmlStrdup(s); // name=""
+				// name=""
+				entity.name = xmlStrdup(s);
 			}
 			else if(i == 1)
 			{
-				entity.attr.type = atoi((const char*)s); // type=""
+				// length=""
+				if(xmlStrlen(s) == 0)
+					entity.attr.len.lb = 0;
+				else
+					entity.attr.len.lb = atoi((const char*)s);				
 			}
 			else if(i == 2)
-			{	
-				// case length=""
+			{
+				// type=""
+				entity.attr.type = atoi((const char*)s);
 				switch(entity.attr.type)
 				{
 					T_BYTE_CASE:
-						entity.attr.len.lb = atoi((const char*)s) << 3;
+						entity.attr.len.lb <<= 3;
 						break;
 					T_BIT_CASE:
-						entity.attr.len.lb = atoi((const char*)s);
 						break;
 					T_BYTE_REF_CASE: T_BIT_REF_CASE:
-						entity.attr.len.lb = -1;
+						s = xmlTextReaderGetAttributeNo(reader, 1);
 						entity.attr.len.le = get_ref_by_name(processing, s);
 						break;
+					T_NULL_CASE:
+						assert(entity.attr.len.lb == 0);
+						break;
 					default:
-						printf("unknow attr type %d of %s\n", entity.attr.type, entity.name);
+						printf("unknown attr type %d of %s\n", entity.attr.type, entity.name);
 						throw;
 				}
 			}
@@ -105,37 +139,34 @@ void xmlreader::processNode(xmlTextReaderPtr reader)
 		}
 		processing->push_back(dup_PARA_entity(&entity));
 	}
-	else if(xmlStrncasecmp(node_name, PARACHOICE, MLEN) == 0)// <PARACHOCE value="">
+	else if(xmlStrncasecmp(node_name, PARACHOICE, MLEN) == 0)// <PARACHOCE ...
 	{
 		entity.type = T_PARACHOICE;
-		assert(entity.depth > 1);
+		// backward find first PARA with depth less 1
+		vector<PARA_entity*>::reverse_iterator rit;
+		for(rit=processing->rbegin(); rit!=processing->rend(); ++rit)
+		{
+			if((*rit)->depth == entity.depth-1)
+			{
+				entity.depend = *rit;
+				assert(entity.depend->type == T_PARA);
+				break;
+			}
+		}
+		if(rit == processing->rend())
+		{
+			printf("can't find PARACHOICE dependency\n");
+			throw;
+		}
+		// does exist value="a~b" attr?
 		if(xmlTextReaderAttributeCount(reader) > 0)
 		{
-			// value= a range
 			s = xmlTextReaderGetAttributeNo(reader, 0);
 			resolve_range(entity.attr.rng, s);
-			// backward find first PARA with depth less 1
-			vector<PARA_entity*>::reverse_iterator rit;
-			for(rit=processing->rbegin(); rit!=processing->rend(); ++rit)
-			{
-				if((*rit)->depth == entity.depth-1)
-				{
-					entity.depend = *rit;
-					break;
-				}
-			}
-			if(rit == processing->rend())
-			{
-				printf("can't find PARACHOICE value=%s dependency\n", s);
-				throw;
-			}
-			processing->push_back(dup_PARA_entity(&entity));
 		}
 		else
-		{
-			printf("encounter a PARACHOICE without 'value='\n");
-			return;
-		}
+			entity.attr.rng.type = T_ANY;
+		processing->push_back(dup_PARA_entity(&entity));
 	}
 	else// <UNKNOWN ...
 	{
@@ -197,13 +228,17 @@ int xmlreader::processFile(const char* file)
 void xmlreader::printOut(FILE *fout)
 {
 	vector<PARA_entity*>::iterator it;
+	vector<log_format*>::iterator lit;
 	fprintf(fout, "======== Output read in to check ========\n");
 	fprintf(fout, "-----<File head info(%zu)>-----\n", format_file.file_head.size());
 	for(it = format_file.file_head.begin(); it != format_file.file_head.end(); ++it)
 		show_PARA_entity(*it, fout);
-	fprintf(fout, "-----<File content info(%zu)>-----\n", format_file.file_content.size());
-	for(it = format_file.file_content.begin(); it != format_file.file_content.end(); ++it)
+	fprintf(fout, "-----<Log head info(%zu)>-----\n", format_file.log_head.size());
+	for(it = format_file.log_head.begin(); it != format_file.log_head.end(); ++it)
 		show_PARA_entity(*it, fout);
+	fprintf(fout, "-----<Log type info(%zu)>-----\n", format_file.log_fmt.size());
+	for(lit = format_file.log_fmt.begin(); lit != format_file.log_fmt.end(); ++lit)
+		show_one_log_fmt(*lit, fout);
 	fprintf(fout, "========= Finish output read in =========\n");
 }
 
@@ -211,12 +246,20 @@ void xmlreader::printOut(FILE *fout)
 void xmlreader::cleanup()
 {
 	vector<PARA_entity*>::iterator it;
+	vector<log_format*>::iterator lit;
 	for(it = format_file.file_head.begin(); it != format_file.file_head.end(); ++it)
 		free_PARA_entity(*it);
-	for(it = format_file.file_content.begin(); it != format_file.file_content.end(); ++it)
+	for(it = format_file.log_head.begin(); it != format_file.log_head.end(); ++it)
 		free_PARA_entity(*it);
+	for(lit = format_file.log_fmt.begin(); lit != format_file.log_fmt.end(); ++lit)
+	{
+		for(it = (*lit)->entities.begin(); it != (*lit)->entities.end(); ++it)
+			free_PARA_entity(*it);
+		delete (*lit);
+	}
 	format_file.file_head.clear();
-	format_file.file_content.clear();
+	format_file.log_head.clear();
+	format_file.log_fmt.clear();
 }
 
 #endif

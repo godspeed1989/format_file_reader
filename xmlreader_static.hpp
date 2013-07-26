@@ -46,6 +46,9 @@ static PARA_entity* dup_PARA_entity(const PARA_entity* entity)
 // free a PARA entity
 static void free_PARA_entity(PARA_entity* entity)
 {
+	xmlFree((void*)entity->a.name);
+	if(entity->a.depend)
+		xmlFree((void*)entity->a.depend);
 	free(entity);
 }
 
@@ -57,7 +60,7 @@ static PARA_entity* get_ref_by_name(vector<PARA_entity*>* es, const xmlChar* nam
 	vector<PARA_entity*>::reverse_iterator rit;
 	for(rit = es->rbegin(); rit != es->rend(); ++rit)
 	{
-		if(xmlStrncasecmp((*rit)->name, name, MLEN) == 0)
+		if(xmlStrncasecmp((*rit)->a.name, name, MLEN) == 0)
 			break;
 	}
 	if(rit == es->rend())
@@ -81,16 +84,16 @@ static void show_range(const range& rng, FILE* fout)
 
 static void show_length(const PARA_entity *entity, FILE *fout)
 {
-	fprintf(fout, "len=");
-	switch(entity->attr.type)
+	fprintf(fout, "length=");
+	switch(entity->a.type)
 	{
 		T_BIT_CASE: T_BYTE_CASE:
-			fprintf(fout, "%db", entity->attr.len.lb);
+			fprintf(fout, "%db", entity->a.len.lb);
 			break;
 		T_BIT_REF_CASE: T_BYTE_REF_CASE:
-			fprintf(fout, "'$%s'", entity->attr.len.le->name);
+			fprintf(fout, "'$%s'", entity->a.len.le->a.name);
 			break;
-		T_NULL_CASE:
+		T_BLK_CASE: T_NULL_CASE:
 			fprintf(fout, "''");
 			break;
 		default:
@@ -105,15 +108,19 @@ static void show_PARA_entity(const PARA_entity *entity, FILE *fout)
 		fprintf(fout, "+---");
 	if(entity->type == T_PARA)
 	{
-		fprintf(fout, "%s %d ", entity->name, entity->attr.type);
+		fprintf(fout, "%s %d ", entity->a.name, entity->a.type);
 		show_length(entity, fout);
-		if(entity->depend)
-			fprintf(fout, " depend='%s'", entity->depend->name);
+		if(entity->a.depend)
+			fprintf(fout, " depend='%s'", entity->refer->a.name);
 	}
 	else if(entity->type == T_PARACHOICE)
 	{
-		fprintf(fout, "CHOICE on %s value=", entity->depend->name);
-		show_range(entity->attr.rng, fout);
+		fprintf(fout, "PARACHOICE ");
+		if(entity->refer)
+		{
+			fprintf(fout, "%s value=", entity->refer->a.name);
+			show_range(entity->a.rng, fout);
+		}
 	}
 	fprintf(fout, "\n");
 }

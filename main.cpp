@@ -14,6 +14,7 @@ int main(int argc, char* argv[])
 		printf("error in parse XML file %s\n", argv[1]);
 		return -1;
 	}
+	freader.dump_fmt_info("dump.txt");
 	if(freader.parse_data_file())
 	{
 		printf("error in parse data file %s\n", argv[2]);
@@ -21,7 +22,6 @@ int main(int argc, char* argv[])
 	}
 	freader.summary();
 	freader.dump_all_dat("dump.hex");
-	freader.dump_fmt_info("dump.txt");
 	return 0;
 }
 

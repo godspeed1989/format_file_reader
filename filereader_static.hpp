@@ -32,7 +32,7 @@ static const data& get_data_by_name(const vector<data> &data_set, const xmlChar*
 	static const data d;
 	for(i = 0; i < data_set.size(); ++i)
 	{
-		if(xmlStrncasecmp(data_set[i].ref->name, name, MLEN) == 0)
+		if(xmlStrncasecmp(data_set[i].ref->a.name, name, MLEN) == 0)
 			break;
 	}
 	if(i == data_set.size())
@@ -67,17 +67,16 @@ static const data& get_data_by_ref(const vector<data> &data_set, const PARA_enti
 	}
 	if(i == data_set.size())
 	{
-		printf("error: can't find data [%s]\n", ref->name);
+		printf("error: can't find [%s]\n", ref->a.name);
 		throw;
 	}
 	return data_set[i];
 }
 
-// get a value by its reference pointer
-static int get_value_by_ref(const vector<data> &data_set, const PARA_entity* ref)
+// get a value by data ref
+static int get_value_by_data(const data &dat)
 {
 	int lenB, value;
-	const data &dat = get_data_by_ref(data_set, ref);
 	lenB = (dat.lenb >> 3) + ((dat.lenb & 7) != 0);
 	switch(lenB)
 	{
@@ -85,10 +84,18 @@ static int get_value_by_ref(const vector<data> &data_set, const PARA_entity* ref
 		case 2:  value = *((short*)dat.p);	break;
 		case 4:  value = *((int*)dat.p);	break;
 		default:
-			printf("%s: not suppported value length\n", ref->name);
+			printf("%s: not suppported value length\n", dat.ref->a.name);
 			throw;
 	}
 	return value;
+}
+
+// get a value by its reference pointer
+static int get_value_by_ref(const vector<data> &data_set, const PARA_entity* ref)
+{
+	
+	const data &dat = get_data_by_ref(data_set, ref);
+	return get_value_by_data(dat);
 }
 
 // read in one entity to the container
@@ -97,40 +104,47 @@ static int readin_entity(bitfile &reader, const PARA_entity* e, vector<data> &co
 	data d;
 	d.ref = e;
 	// check the dependent parameter
-	if(e->depend && (get_value_by_ref(container, e->depend) == 0))
+	if(e->refer && (get_value_by_ref(container, e->refer) == 0))
 	{
 		return 0;
 	}
 	// calculate the length by type
-	switch(e->attr.type)
+	switch(e->a.type)
 	{
 		T_BIT_CASE: T_BYTE_CASE:
-			//len is a direct value
-			d.lenb = e->attr.len.lb;
+			d.lenb = e->a.len.lb;
 			break;
 		T_BIT_REF_CASE:
-			//len is based on other's value in BIT
-			d.lenb = get_value_by_ref(container, e->attr.len.le);
+			if(e->a.len.lb == 0)
+				d.lenb = get_value_by_ref(container, e->a.len.le);
+			else
+				d.lenb = e->a.len.lb;
 			break;
 		T_BYTE_REF_CASE:
-			//len is based on other's value in BYTE
-			d.lenb = get_value_by_ref(container, e->attr.len.le) << 3;
+			if(e->a.len.lb == 0)
+				d.lenb = get_value_by_ref(container, e->a.len.le) << 3;
+			else
+				d.lenb = e->a.len.lb;
 			break;
-		T_NULL_CASE:
+		T_COND_BLK_CASE:
+			const data& dat = get_data_by_name(container, e->a.depend);
+			d = dat;
+			return 0;
+		T_BLK_CASE: T_NULL_CASE:
 			return 0;
 		default:
-			printf("unkonw attr type %d of %s\n", e->attr.type, e->name);
+			printf("unkonw attr type %d of %s\n", e->a.type, e->a.name);
 			return -1;
 	}
 	if(d.lenb == 0)
 	{
-		printf("warning: the length of %s is zero\n", e->name);
+		printf("warning: the length of %s is zero\n", e->a.name);
 		return 0;
 	}
 	// read the data from file
 	if(reader.eof())
 	{
-		printf("read in para entity [%s] reached EOF\n", e->name);
+		printf("read in para entity [%s] reached EOF\n", e->a.name);
 		return -1;
 	}
 	d.p = malloc((d.lenb >> 3) + 1);
@@ -151,19 +165,19 @@ static int readin_entities(bitfile &reader, const vector<PARA_entity*> es, vecto
 		{
 			if(readin_entity(reader, es[i], container))
 			{
-				printf("read in para entity [%s] error\n", es[i]->name);
+				printf("read in para entity [%s] error\n", es[i]->a.name);
 				return -1;
 			}
 		}
 		else if(es[i]->type == T_PARACHOICE)
 		{
-			if(es[i]->attr.rng.type == T_ANY)
+			if(es[i]->a.rng.type == T_NULL)
 			{
 				continue;
 			}
-			long val = get_value_by_ref(container, es[i]->depend);
+			long val = get_value_by_ref(container, es[i]->refer);
 			// match the choice range, continue to read
-			if(range_equal(es[i]->attr.rng, val))
+			if(range_equal(es[i]->a.rng, val))
 			{
 				continue;
 			}

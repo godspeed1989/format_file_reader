@@ -16,6 +16,14 @@ typedef struct data
 	u32 lenb;
 	void * p;
 	data() : ref(NULL), lenb(-1), p(NULL) {}
+	data(const data& d) : ref(d.ref), lenb(d.lenb)
+	{
+		if(d.p)
+		{
+			p = malloc((d.lenb >> 3) + 1);
+			memcpy(d.p, p, (d.lenb >> 3) + 1);
+		}
+	}
 }data;
 
 typedef struct log_data

@@ -10,7 +10,7 @@ using namespace std;
 // range type
 typedef enum range_t
 {
-	T_VALUE, T_RANGE, T_ANY
+	T_VALUE, T_RANGE, T_ANY, T_NULL
 }range_t;
 typedef struct range
 {
@@ -20,7 +20,7 @@ typedef struct range
 
 struct PARA_entity;
 // PARA's length, be a constant value or depend on other's value
-typedef union length
+typedef struct length
 {
 	int lb;                 // length in bit
 	const PARA_entity* le;  // dependent entity
@@ -32,15 +32,16 @@ typedef enum { T_PARA, T_PARACHOICE } PARA_entity_t;
 typedef struct PARA_entity
 {
 	int depth;
-	const xmlChar * name;
 	PARA_entity_t type;
-	const PARA_entity * depend;  // used by "PARACHOICE" or "depend="
+	const PARA_entity * refer;   // used by "PARACHOICE"
 	struct attr
 	{
-		int type;        // type="" attr
-		length len;      // length="" attr
-		range rng;       // "value=a~b" attr in PARACHOICE
-	}attr;
+		const xmlChar * name;    // name="" attr in PARA
+		int type;                // type="" attr in PARA
+		length len;              // length="" attr in PARA
+		const xmlChar * depend;  // depend="" attr in PARA
+		range rng;               // value=a~b attr in PARACHOICE
+	}a;
 }PARA_entity;
 
 // structure of each log
@@ -79,12 +80,20 @@ private:
 	void processNode(xmlTextReaderPtr reader);
 }xmlreader;
 
-// the "type=" attribute cases
-#define T_BIT_CASE          case 3
-#define T_BYTE_CASE         case 0 : case 4
-#define T_BIT_REF_CASE      case 7
-#define T_BYTE_REF_CASE     case 11
-#define T_NULL_CASE         case 16
+/* the "type=" attribute cases */
+// length is a value
+#define T_BIT_CASE          case 4 : case 17
+#define T_BYTE_CASE         case 0 : case 9 : case 10 : case 11
+// length is a value or a ref
+#define T_BIT_REF_CASE      case 1
+// length is a value or a ref
+#define T_BYTE_REF_CASE     case 13
+// followed by a parachoice without value=
+#define T_BLK_CASE          case 2 : case 5 : case 6 : case 7
+// without length=, followed by a parachoice without value=
+#define T_NULL_CASE         case 16 : case 101
+// followed by a parachoice with value=
+#define T_COND_BLK_CASE     case 3
 
 #endif
 

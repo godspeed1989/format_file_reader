@@ -10,7 +10,7 @@ all: $(TARGET)
 main.o: main.cpp
 endian.o: endian.cpp endian.hpp
 xmlreader.o: xmlreader.cpp xmlreader.hpp xmlreader_static.hpp
-filereader.o: filereader.cpp filereader.hpp filereader_static.hpp xmlreader.o
+filereader.o: filereader.cpp filereader.hpp filereader_static.hpp
 
 lib$(TARGET).a: xmlreader.o filereader.o endian.o
 	$(AR) -cq $@ $+
@@ -19,5 +19,5 @@ $(TARGET): main.o lib$(TARGET).a
 	$(CC) $< -L. -l$(TARGET) $(LIBS) -o $@
 
 clean:
-	rm -rf *.o lib$(TARGET).a $(TARGET)
+	rm -rf *.o lib$(TARGET).a $(TARGET) $(TARGET).exe dump.*
 

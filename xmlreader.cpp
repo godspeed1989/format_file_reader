@@ -115,11 +115,9 @@ void xmlreader::processNode(xmlTextReaderPtr reader)
 		xmlFree(s);
 		switch(entity.a.type)
 		{
-			T_BYTE_CASE:
-				entity.a.len.lb <<= 3;
-				break;
-			T_BIT_CASE:
-				break;
+			// really exist PARA
+			T_BYTE_CASE:        entity.a.len.lb <<= 3;    break;
+			T_BIT_CASE:                                   break;
 			T_BYTE_REF_CASE:
 				entity.a.len.lb <<= 3;
 			T_BIT_REF_CASE:
@@ -129,13 +127,11 @@ void xmlreader::processNode(xmlTextReaderPtr reader)
 					entity.a.len.le = get_ref_by_name(processing, s);
 				}
 				break;
-			T_COND_BLK_CASE:
-				assert(entity.a.depend);
-				break;
-			T_BLK_CASE: T_NULL_CASE:
-				break;
+			// logic exist PARA
+			T_COND_BLK_CASE:    assert(entity.a.depend);  break;
+			T_BLK_CASE: T_NULL_CASE:                      break;
 			default:
-				printf("unknown attr type %d of %s\n", entity.a.type, entity.a.name);
+				printf("unknown attr %d %s\n", entity.a.type, entity.a.name);
 				throw;
 		}
 
@@ -149,31 +145,51 @@ void xmlreader::processNode(xmlTextReaderPtr reader)
 	else if(xmlStrncasecmp(node_name, S_PARACHOICE, MLEN) == 0)// <PARACHOCE ...
 	{
 		entity.type = T_PARACHOICE;
-		// does exist value="a~b" attr?
-		if(xmlTextReaderAttributeCount(reader) > 0)
+		// backward find first PARA with depth less 1
+		// this PARA *must* be a logic exist one
+		vector<PARA_entity*>::reverse_iterator rit;
+		for(rit=processing->rbegin(); rit!=processing->rend(); ++rit)
 		{
-			s = xmlTextReaderGetAttribute(reader, S_VALUE);
-			resolve_range(entity.a.rng, s);
-			// backward find first PARA with depth less 1
-			vector<PARA_entity*>::reverse_iterator rit;
-			for(rit=processing->rbegin(); rit!=processing->rend(); ++rit)
+			if((*rit)->depth == entity.depth-1 && (*rit)->type == T_PARA)
+				break;
+		}
+		if(rit == processing->rend())
+		{
+			printf("can't find PARACHOICE dependency\n");
+			throw;
+		}
+		// does exist value="a~b" attr?
+		s = xmlTextReaderGetAttribute(reader, S_VALUE);
+		if(xmlStrlen(s))
+		{
+			switch((*rit)->a.type)
 			{
-				if((*rit)->depth == entity.depth-1)
-				{
-					entity.refer = *rit;
-					assert(entity.refer->type == T_PARA);
-					break;
-				}
-			}
-			if(rit == processing->rend())
-			{
-				printf("can't find PARACHOICE dependency\n");
+			T_COND_BLK_CASE:
+				assert((*rit)->a.depend);
+				entity.refer = get_ref_by_name(processing, (*rit)->a.depend);
+				resolve_range(entity.a.rng, s);
+				xmlFree(s);
+				break;
+			default:
 				throw;
 			}
 		}
 		else
 		{
-			entity.a.rng.type = T_NULL;
+			switch((*rit)->a.type)
+			{
+			T_BLK_CASE: T_NULL_CASE:
+				if((*rit)->a.depend)
+				{
+					entity.a.rng.type = T_BOOL;
+					entity.refer = get_ref_by_name(processing, (*rit)->a.depend);
+				}
+				else
+					entity.a.rng.type = T_NULL;
+				break;
+			default:
+				throw;
+			}
 		}
 		processing->push_back(dup_PARA_entity(&entity));
 	}

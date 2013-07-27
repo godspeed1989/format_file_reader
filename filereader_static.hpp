@@ -111,6 +111,7 @@ static int readin_entity(bitfile &reader, const PARA_entity* e, vector<data> &co
 	// calculate the length by type
 	switch(e->a.type)
 	{
+		// really exist PARA
 		T_BIT_CASE: T_BYTE_CASE:
 			d.lenb = e->a.len.lb;
 			break;
@@ -126,9 +127,8 @@ static int readin_entity(bitfile &reader, const PARA_entity* e, vector<data> &co
 			else
 				d.lenb = e->a.len.lb;
 			break;
+		// logic exist PARA
 		T_COND_BLK_CASE:
-			const data& dat = get_data_by_name(container, e->a.depend);
-			d = dat;
 			return 0;
 		T_BLK_CASE: T_NULL_CASE:
 			return 0;
@@ -171,14 +171,21 @@ static int readin_entities(bitfile &reader, const vector<PARA_entity*> es, vecto
 		}
 		else if(es[i]->type == T_PARACHOICE)
 		{
+			long val;
 			if(es[i]->a.rng.type == T_NULL)
 			{
 				continue;
 			}
-			long val = get_value_by_ref(container, es[i]->refer);
+			if(es[i]->a.rng.type == T_BOOL && val)
+			{
+				//TODO 
+				continue;
+			}
+			val = get_value_by_ref(container, es[i]->refer);
 			// match the choice range, continue to read
 			if(range_equal(es[i]->a.rng, val))
 			{
+				//TODO no deeper any more
 				continue;
 			}
 			else

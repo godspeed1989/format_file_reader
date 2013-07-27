@@ -171,37 +171,51 @@ static int readin_entities(bitfile &reader, const vector<PARA_entity*> es, vecto
 		}
 		else if(es[i]->type == T_PARACHOICE)
 		{
-			long val;
-			if(es[i]->a.rng.type == T_NULL)
+			size_t j;
+			vector<size_t> choices;
+			choices.push_back(i);
+			// find all the parallel PARACHOICE
+			j = i + 1;
+			while(j < es.size() && es[j]->depth >= es[i]->depth)
 			{
-				continue;
+				if(es[j]->type == T_PARACHOICE &&
+				   es[j]->depth == es[i]->depth)
+					choices.push_back(j);
 			}
-			if(es[i]->a.rng.type == T_BOOL && val)
+			// find the first matched choice
+			for(j = 0; j < choices.size(); ++j)
 			{
-				//TODO 
-				continue;
+				if(es[j]->a.rng.type == T_NULL)
+				{
+					assert(choices.size() == 1);
+					break;
+				}
+				else
+				{
+					long val;
+					val = get_value_by_ref(container, es[i]->refer);
+					if(es[j]->a.rng.type == T_BOOL)
+						if(val)
+							break;
+					else
+						if(range_equal(es[j]->a.rng, val))
+							break;
+				}
 			}
-			val = get_value_by_ref(container, es[i]->refer);
-			// match the choice range, continue to read
-			if(range_equal(es[i]->a.rng, val))
+			if(j >= choices.size())
 			{
-				//TODO no deeper any more
-				continue;
+				printf("Warning: %d: no matched parachoice\n", j);
+				// skip the following entities with the higher depth
+				j = choices.back() + 1;
+				while(j < es.size() && es[j]->depth > es[i]->depth)
+					++j;
+				i = j-1;
 			}
 			else
 			{
-				// skip the following entities with the higher depth
-				size_t a = 1;
-				while(i+a < es.size() && es[i+a]->depth > es[i]->depth)
-				{
-					++a;
-				}
-				i += (a-1);
-			}
-		}
-		else
-		{
-			throw;
+				i = choices[j];
+				// TODO  skip following not matched parachoice
+			}	
 		}
 	}
 	return 0;

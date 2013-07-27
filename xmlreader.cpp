@@ -158,7 +158,7 @@ void xmlreader::processNode(xmlTextReaderPtr reader)
 			printf("can't find PARACHOICE dependency\n");
 			throw;
 		}
-		// does exist value="a~b" attr?
+		// does exist value="a~b" attr ?
 		s = xmlTextReaderGetAttribute(reader, S_VALUE);
 		if(xmlStrlen(s))
 		{
@@ -166,9 +166,8 @@ void xmlreader::processNode(xmlTextReaderPtr reader)
 			{
 			T_COND_BLK_CASE:
 				assert((*rit)->a.depend);
-				entity.refer = get_ref_by_name(processing, (*rit)->a.depend);
 				resolve_range(entity.a.rng, s);
-				xmlFree(s);
+				entity.refer = get_ref_by_name(processing, (*rit)->a.depend);
 				break;
 			default:
 				throw;
@@ -191,6 +190,7 @@ void xmlreader::processNode(xmlTextReaderPtr reader)
 				throw;
 			}
 		}
+		xmlFree(s);
 		processing->push_back(dup_PARA_entity(&entity));
 	}
 	else// <UNKNOWN ...

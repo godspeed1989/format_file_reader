@@ -187,7 +187,7 @@ static int readin_entities(bitfile &reader, const vector<PARA_entity*> es, vecto
 			{
 				if(es[j]->a.rng.type == T_NULL)
 				{
-					assert(choices.size() == 1);
+					//assert(choices.size() == 1);
 					break;
 				}
 				else
@@ -195,11 +195,13 @@ static int readin_entities(bitfile &reader, const vector<PARA_entity*> es, vecto
 					long val;
 					val = get_value_by_ref(container, es[i]->refer);
 					if(es[j]->a.rng.type == T_BOOL)
-						if(val)
-							break;
+					{
+						if(val) break;
+					}
 					else
-						if(range_equal(es[j]->a.rng, val))
-							break;
+					{
+						if(range_equal(es[j]->a.rng, val)) break;
+					}
 				}
 			}
 			if(j >= choices.size())

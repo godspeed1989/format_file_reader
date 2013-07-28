@@ -1,6 +1,9 @@
 #ifndef __FILEREADER_STATIC_HPP__
 #define __FILEHEADER_STATIC_HPP__
 
+#include <stack>
+using namespace std;
+
 // check wether a value fix into the range
 static bool range_equal(const range &rng, const long value)
 {
@@ -156,11 +159,25 @@ static int readin_entity(bitfile &reader, const PARA_entity* e, vector<data> &co
 	return 0;
 }
 
+typedef struct jmp_op
+{
+	size_t pos, dst;
+}jmp_op;
+
 // read in set of entites to a container
 static int readin_entities(bitfile &reader, const vector<PARA_entity*> es, vector<data> &container)
 {
-	for(size_t i = 0; i < es.size(); ++i)
+	size_t i = 0;
+	// store the nested jump positions
+	stack<jmp_op> jumps;
+	while(i < es.size())
 	{
+		if(jumps.size() && i == jumps.top().pos)
+		{
+			i = jumps.top().dst;
+			jumps.pop();
+			continue;
+		}
 		if(es[i]->type == T_PARA)
 		{
 			if(readin_entity(reader, es[i], container))
@@ -168,7 +185,7 @@ static int readin_entities(bitfile &reader, const vector<PARA_entity*> es, vecto
 				printf("read in para entity [%s] error\n", es[i]->a.name);
 				return -1;
 			}
-		}
+		}//T_PARA
 		else if(es[i]->type == T_PARACHOICE)
 		{
 			size_t j;
@@ -206,20 +223,30 @@ static int readin_entities(bitfile &reader, const vector<PARA_entity*> es, vecto
 			}
 			if(j >= choices.size())
 			{
-				printf("Warning: %d: no matched parachoice\n", j);
-				// skip the following entities with the higher depth
-				j = choices.back() + 1;
-				while(j < es.size() && es[j]->depth > es[i]->depth)
-					++j;
-				i = j-1;
+				printf("Error: %d: no matched parachoice\n", j);
+				throw;
 			}
 			else
 			{
 				i = choices[j];
-				// TODO  skip following not matched parachoice
-			}	
-		}
-	}
+				// set jmp position to skip the ummatched PARACHOICE
+				// is the last one, nothing to skip
+				if(j + 1 == choices.size())
+					goto next;
+				jmp_op jmp;
+				// set jmp pos
+				jmp.pos = choices[j+1];
+				// set jmp dst
+				j = jmp.pos;
+				while(j < es.size() && es[j]->depth >= es[i]->depth)
+					++j;
+				jmp.dst = j;
+				jumps.push(jmp);
+			}
+		}//T_PARACHOICE
+next:
+		++i;
+	}// foreach XML PARA_entity
 	return 0;
 }
 

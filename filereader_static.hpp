@@ -79,16 +79,18 @@ static const data& get_data_by_ref(const vector<data> &data_set, const PARA_enti
 // get a value by data ref
 static int get_value_by_data(const data &dat)
 {
-	int lenB, value;
-	lenB = (dat.lenb >> 3) + ((dat.lenb & 7) != 0);
-	switch(lenB)
+	int value = 0;
+	unsigned char *d = (unsigned char *)&value;
+	unsigned char *s = (unsigned char *)dat.p;
+	u32 i, lenB = (dat.lenb >> 3) + ((dat.lenb & 7) != 0);
+	if(lenB > sizeof(int))
 	{
-		case 1:  value = *((char*)dat.p);	break;
-		case 2:  value = *((short*)dat.p);	break;
-		case 4:  value = *((int*)dat.p);	break;
-		default:
-			printf("%s: not suppported value length\n", dat.ref->a.name);
+		printf("%s: not suppported value length\n", dat.ref->a.name);
 			throw;
+	}
+	for(i = 0; i < lenB; ++i)
+	{
+		d[i] = s[i];
 	}
 	return value;
 }
@@ -106,11 +108,6 @@ static int readin_entity(bitfile &reader, const PARA_entity* e, vector<data> &co
 {
 	data d;
 	d.ref = e;
-	// check the dependent parameter
-	if(e->refer && (get_value_by_ref(container, e->refer) == 0))
-	{
-		return 0;
-	}
 	// calculate the length by type
 	switch(e->a.type)
 	{
@@ -139,6 +136,11 @@ static int readin_entity(bitfile &reader, const PARA_entity* e, vector<data> &co
 			printf("unkonw attr type %d of %s\n", e->a.type, e->a.name);
 			return -1;
 	}
+	// check the dependent parameter
+	if(e->a.depend && (get_value_by_data(get_data_by_name(container, e->a.depend)) == 0))
+	{
+		return 0;
+	}
 	if(d.lenb == 0)
 	{
 		printf("warning: the length of %s is zero\n", e->a.name);
@@ -150,7 +152,7 @@ static int readin_entity(bitfile &reader, const PARA_entity* e, vector<data> &co
 		printf("read in para entity [%s] reached EOF\n", e->a.name);
 		return -1;
 	}
-	d.p = malloc((d.lenb >> 3) + 1);
+	d.p = malloc((d.lenb >> 3) + ((d.lenb & 7) != 0));
 	d.lenb = reader.readb(d.p, d.lenb);
 #if 0
 	dump_data(d);
@@ -202,7 +204,7 @@ static int readin_entities(bitfile &reader, const vector<PARA_entity*> es, vecto
 			// find the first matched choice
 			for(j = 0; j < choices.size(); ++j)
 			{
-				if(es[j]->a.rng.type == T_NULL)
+				if(es[j]->a.rng.type == T_NULL || es[j]->refer == NULL)
 				{
 					//assert(choices.size() == 1);
 					break;
@@ -210,7 +212,7 @@ static int readin_entities(bitfile &reader, const vector<PARA_entity*> es, vecto
 				else
 				{
 					long val;
-					val = get_value_by_ref(container, es[i]->refer);
+					val = get_value_by_ref(container, es[j]->refer);
 					if(es[j]->a.rng.type == T_BOOL)
 					{
 						if(val) break;

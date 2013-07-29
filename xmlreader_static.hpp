@@ -66,7 +66,7 @@ static PARA_entity* get_ref_by_name(vector<PARA_entity*>* es, const xmlChar* nam
 	if(rit == es->rend())
 	{
 		printf("error: can't find entity ref by name %s\n", name);
-		throw;
+		return NULL;
 	}
 	return *rit;
 }
@@ -117,7 +117,7 @@ static void show_PARA_entity(const PARA_entity *entity, FILE *fout)
 		fprintf(fout, "%s %d ", entity->a.name, entity->a.type);
 		show_length(entity, fout);
 		if(entity->a.depend)
-			fprintf(fout, " depend='%s'", entity->refer->a.name);
+			fprintf(fout, " depend='%s'", entity->a.depend);
 	}
 	else if(entity->type == T_PARACHOICE)
 	{

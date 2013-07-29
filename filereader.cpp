@@ -1,6 +1,7 @@
 #include "filereader.hpp"
 #include "filereader_static.hpp"
 #include "endian.hpp"
+#include <cassert>
 
 filereader::filereader(const char *fmtfile, const char *datfile)
 {
@@ -54,11 +55,9 @@ int filereader::parse_data_file()
 		}
 
 		// check log head magic number
-		if(2 != get_lenB_by_name(log_data.head, LOG_MAGIC))
-			throw;
+		assert(2 == get_lenB_by_name(log_data.head, LOG_MAGIC));
 		p = get_valuep_by_name(log_data.head, LOG_MAGIC);
-		if(p == NULL)
-			throw;
+		assert(p);
 		u16 magic = *((u16*)p);
 		if(magic != 0xABAB && magic != 0xCDCD)
 		{
@@ -69,11 +68,9 @@ int filereader::parse_data_file()
 		}
 
 		// get log head 'type' attr to determine log's type
-		if(2 != get_lenB_by_name(log_data.head, LOG_TYPE))
-			throw;
+		assert(2 == get_lenB_by_name(log_data.head, LOG_TYPE));
 		p = get_valuep_by_name(log_data.head, LOG_TYPE);
-		if(p == NULL)
-			throw;
+		assert(p);
 		u16 log_type = *((u16*)p);
 		EndianConvert(&log_type, get_lenB_by_name(log_data.head, LOG_TYPE));
 		// get log content format by the value of log's type
@@ -90,11 +87,9 @@ int filereader::parse_data_file()
 		}
 
 		// get log head 'length' attr to determine length of log content
-		if(4 != get_lenB_by_name(log_data.head, LOG_LEN))
-			throw;
+		assert(4 == get_lenB_by_name(log_data.head, LOG_LEN));
 		p = get_valuep_by_name(log_data.head, LOG_LEN);
-		if(p == NULL)
-			throw;
+		assert(p);
 		u32 log_len = *((u32*)p);
 		EndianConvert(&log_len, get_lenB_by_name(log_data.head, LOG_LEN));
 		// get log content data
@@ -119,8 +114,7 @@ int filereader::parse_data_file()
 			log_data.left.p = malloc((log_data.left.lenb >> 3) + 1);
 			_freader.readb(log_data.left.p, log_data.left.lenb);
 		}
-		if(!_freader.eof())
-			throw;
+		assert(_freader.eof());
 		_freader.close();
 
 		// step 3. add one log data to the logs
@@ -142,8 +136,7 @@ void filereader::summary()
 
 static void dump_dats(bitfile &ofile, const vector<data> dats)
 {
-	if(ofile.otype != WRITE)
-		throw;
+	assert(ofile.otype == WRITE);
 	for(size_t i = 0; i < dats.size(); ++i)
 		ofile.writeb(dats[i].p, dats[i].lenb);
 }

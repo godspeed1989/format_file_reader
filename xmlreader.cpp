@@ -77,7 +77,7 @@ void xmlreader::processNode(xmlTextReaderPtr reader)
 		log_format *one_log_fmt = new log_format;
 		// get "type=" attr to setup range
 		s = xmlTextReaderGetAttribute(reader, S_TYPE);
-		assert(xmlStrlen(s));
+		assert(s);
 		resolve_range(one_log_fmt->rng, s);
 		xmlFree(s);
 		show_range(one_log_fmt->rng, stdout);
@@ -160,7 +160,7 @@ void xmlreader::processNode(xmlTextReaderPtr reader)
 		}
 		// does exist value="a~b" attr ?
 		s = xmlTextReaderGetAttribute(reader, S_VALUE);
-		if(xmlStrlen(s))
+		if(s)
 		{
 			switch((*rit)->a.type)
 			{
